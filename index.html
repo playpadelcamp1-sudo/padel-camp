@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Play Padel Camp — Яблуко вирішує</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            border-radius: 20px;
+            cursor: pointer;
+            max-height: 95vh;
+            max-width: 100%;
+            aspect-ratio: 9 / 16;
+            background-color: #FF6E28;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="animCanvas" width="1080" height="1920"></canvas>
+
+<script>
+const canvas = document.getElementById('animCanvas');
+const ctx = canvas.getContext('2d');
+
+const WIDTH = 1080;
+const HEIGHT = 1920;
+const ORANGE = '#FF6E28';
+const GREEN_PADEL = '#CBEB1E';
+const DARK = '#141414';
+
+const discounts = ["-5%", "-7%", "-10%"];
+let currentDiscount = "-10%";
+let startTime = null;
+const duration = 13.0; 
+
+function pickNewDiscount() {
+    currentDiscount = discounts[Math.floor(Math.random() * discounts.length)];
+}
+
+// 🍎 НАДІЙНЕ ТА КРАСИВЕ ОБ'ЄМНЕ ЯБЛУКО
+function drawApple(cx, cy, r) {
+    ctx.save();
+    
+    // Тінь під яблуком
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = r * 0.2;
+    ctx.shadowOffsetY = r * 0.1;
+
+    // Градієнт об'єму (світло падає зверху зліва)
+    let grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r * 0.1, cx, cy, r * 1.2);
+    grad.addColorStop(0, '#FF5252');  
+    grad.addColorStop(0.6, '#D60E0E'); 
+    grad.addColorStop(1, '#8A0000');   
+
+    ctx.fillStyle = grad;
+    
+    // Плавна форма яблука через дві півкулі
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.25, cy, r * 0.75, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.25, cy, r * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+
+    // 🌟 ГЛЯНЦЕВИЙ БЛІК (біле кругле відбиття світла)
+    let bGrad = ctx.createRadialGradient(cx - r*0.35, cy - r*0.35, 0, cx - r*0.35, cy - r*0.35, r*0.25);
+    bGrad.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+    bGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = bGrad;
+    ctx.beginPath();
+    ctx.arc(cx - r*0.35, cy - r*0.35, r*0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 🪵 ХВОСТИК
+    ctx.strokeStyle = '#5A3311';
+    ctx.lineWidth = Math.max(4, r / 10);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.4);
+    ctx.quadraticCurveTo(cx + r*0.1, cy - r*0.8, cx + r*0.25, cy - r * 0.85);
+    ctx.stroke();
+    
+    // 🍃 ЛИСТОЧОК
+    ctx.fillStyle = '#1E821E';
+    ctx.beginPath();
+    let lx = cx + r * 0.12;
+    let ly = cy - r * 0.75;
+    ctx.moveTo(lx, ly);
+    ctx.quadraticCurveTo(lx + r*0.25, ly - r*0.25, lx + r*0.45, ly - r*0.1);
+    ctx.quadraticCurveTo(lx + r*0.2, ly + r*0.1, lx, ly);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+// 🎾 ОБ'ЄМНИЙ ПАДЕЛЬНИЙ М'ЯЧ
+function drawPadelBall(cx, cy, r) {
+    ctx.save();
+    
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+    ctx.shadowBlur = r * 0.3;
+    ctx.shadowOffsetY = r * 0.1;
+
+    let ballGrad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.05, cx, cy, r);
+    ballGrad.addColorStop(0, '#EFFF85'); 
+    ballGrad.addColorStop(0.7, GREEN_PADEL);
+    ballGrad.addColorStop(1, '#8BA300');   
+
+    ctx.fillStyle = ballGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+
+    // Лінії швів м'яча
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = Math.max(3, r / 11);
+    
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.6, cy, r * 0.95, -Math.PI / 2.5, Math.PI / 2.5);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(cx + r * 0.6, cy, r * 0.95, Math.PI - Math.PI / 2.5, Math.PI + Math.PI / 2.5);
+    ctx.stroke();
+    
+    ctx.restore();
+}
+
+function animate(timestamp) {
+    if (!startTime) startTime = timestamp;
+    let elapsed = (timestamp - startTime) / 1000;
+    
+    if (elapsed >= duration) {
+        startTime = timestamp;
+        pickNewDiscount();
+        elapsed = 0;
+    }
+
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 45px Arial';
+    ctx.fillText("PLAY PADEL CAMP", WIDTH / 2, 150);
+
+    // КАДР 1 (0 - 5 сек)
+    if (elapsed < 5.0) {
+        if (elapsed < 2.0) {
+            ctx.font = 'bold 65px Arial';
+            ctx.fillText("На Мадейрі у вересні", WIDTH / 2, HEIGHT / 2 - 50);
+            ctx.fillText("є одна проблема…", WIDTH / 2, HEIGHT / 2 + 30);
+        } else if (elapsed < 3.5) {
+            let progress = (elapsed - 2.0) / 1.5;
+            let y = -200 + progress * (HEIGHT / 2 + 200);
+            drawApple(WIDTH / 2, Math.min(y, HEIGHT / 2), 160);
+        } else {
+            ctx.fillStyle = DARK;
+            ctx.font = 'bold 65px Arial';
+            ctx.fillText("…занадто багато яблук.", WIDTH / 2, HEIGHT / 2 - 400);
+            
+            if (elapsed > 4.2) {
+                drawPadelBall(WIDTH / 2, HEIGHT / 2, 65);
+                let shift = (elapsed - 4.2) * 450;
+                drawApple(WIDTH / 2 - 90 - shift, HEIGHT / 2, 130);
+                drawApple(WIDTH / 2 + 90 + shift, HEIGHT / 2, 130);
+            } else {
+                drawApple(WIDTH / 2, HEIGHT / 2, 160);
+            }
+        }
+    }
+    // КАДР 2 (5 - 9 сек)
+    else if (elapsed < 9.0) {
+        let tScene = elapsed - 5.0;
+        
+        let apples = [
+            {x: 280, y: 600, text: "5%", hit: 1.0},
+            {x: 800, y: 900, text: "7%", hit: 2.0},
+            {x: 320, y: 1200, text: "10%", hit: 3.0}
+        ];
+
+        let bx, by;
+        if (tScene < 1.0) {
+            bx = WIDTH/2 + tScene * (280 - WIDTH/2);
+            by = HEIGHT/2 + tScene * (600 - HEIGHT/2);
+        } else if (tScene < 2.0) {
+            let a = tScene - 1.0;
+            bx = 280 + a * (800 - 280);
+            by = 600 + a * (900 - 600);
+        } else if (tScene < 3.0) {
+            let a = tScene - 2.0;
+            bx = 800 + a * (320 - 800);
+            by = 900 + a * (1200 - 900);
+        } else {
+            let a = tScene - 3.0;
+            bx = 320 + a * (WIDTH/2 - 320);
+            by = 1200 + a * (HEIGHT - 200 - 1200);
+        }
+
+        apples.forEach(app => {
+            if (tScene < app.hit) {
+                drawApple(app.x, app.y, 95);
+            } else {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 120px Arial';
+                ctx.fillText(app.text, app.x, app.y + 35);
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(app.x - 80, app.y - 40); ctx.lineTo(app.x - 50, app.y - 20);
+                ctx.moveTo(app.x + 50, app.y - 20); ctx.lineTo(app.x + 80, app.y - 40);
+                ctx.stroke();
+            }
+        });
+        drawPadelBall(bx, by, 50);
+    }
+    // КАДР 3 (9 - 13 сек)
+    else {
+        let tScene = elapsed - 9.0;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 65px Arial';
+        ctx.fillText("Твоє яблуко", WIDTH / 2, 320);
+        ctx.fillText("вже вирішило.", WIDTH / 2, 410);
+
+        if (tScene < 1.5) {
+            let by = HEIGHT + 100 - (tScene / 1.5) * (HEIGHT / 2 + 100);
+            drawApple(WIDTH / 2, HEIGHT / 2, 170);
+            drawPadelBall(WIDTH / 2, by, 55);
+        } else {
+            let tExplode = tScene - 1.5;
+            if (tExplode < 0.15) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(WIDTH / 2, HEIGHT / 2, 300, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.fillStyle = GREEN_PADEL;
+            ctx.font = 'bold 150px Arial';
+            ctx.fillText(currentDiscount + " 🎉", WIDTH / 2, HEIGHT / 2 + 45);
+
+            // Вибух конфеті
+            for (let i = 0; i < 80; i++) {
+                let angle = (i / 80) * Math.PI * 2 + (i * 0.15);
+                let speed = 200 + (i * 11);
+                let dist = speed * tExplode;
+                let px = WIDTH / 2 + Math.cos(angle) * dist;
+                let py = HEIGHT / 2 + Math.sin(angle) * dist + (tExplode * tExplode * 350); 
+                
+                ctx.fillStyle = ['#FFFFFF', GREEN_PADEL, '#00B4FF', '#FFD700', '#FF4D4D'][i % 5];
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(tExplode * i * 0.1); 
+                ctx.fillRect(-10, -10, 20, 20);
+                ctx.restore();
+            }
+        }
+
+        ctx.fillStyle = DARK;
+        ctx.font = 'bold 65px Arial';
+        ctx.fillText("Madeira Padel Camp", WIDTH / 2, HEIGHT - 300);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '45px Arial';
+        ctx.fillText("October 2026", WIDTH / 2, HEIGHT - 180);
+    }
+
+    requestAnimationFrame(animate);
+}
+
+canvas.addEventListener('click', () => {
+    pickNewDiscount();
+    startTime = null;
+});
+
+pickNewDiscount();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
